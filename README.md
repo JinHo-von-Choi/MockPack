@@ -88,4 +88,10 @@ src/main/kotlin/com/mockpack/
 
 ## 라이선스
 
-사내 업무용 도구. 별도 라이선스 없음.
+[MIT License](LICENSE)
+
+
+<p align="center">
+  Made by <a href="mailto:jinho.von.choi@nerdvana.kr">Jinho Choi</a> &nbsp;|&nbsp;
+  <a href="https://buymeacoffee.com/jinho.von.choi">Buy me a coffee</a>
+</p>
