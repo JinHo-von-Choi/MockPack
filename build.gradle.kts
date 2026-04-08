@@ -8,7 +8,7 @@ plugins {
 }
 
 group   = "com.mockpack"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     google()
@@ -56,7 +56,7 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi)
 
             packageName    = "MockPack"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
             description    = "Mobile App Package Metadata Extractor & Mock Builder"
             vendor         = "MockPack"
 

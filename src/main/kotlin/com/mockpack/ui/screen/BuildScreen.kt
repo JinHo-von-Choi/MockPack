@@ -20,7 +20,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,9 +30,8 @@ import com.mockpack.ui.component.FormField
 import com.mockpack.ui.component.PlatformSelector
 import com.mockpack.ui.theme.MockPackColors
 import com.mockpack.ui.viewmodel.BuildViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.File
+import java.util.prefs.Preferences
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
 
@@ -49,8 +47,7 @@ import javax.swing.filechooser.FileNameExtensionFilter
 @Composable
 fun BuildScreen(viewModel: BuildViewModel) {
     val buildState by viewModel.state.collectAsState()
-    val scrollState    = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
     var platform   by remember { mutableStateOf("android") }
 
@@ -160,42 +157,44 @@ fun BuildScreen(viewModel: BuildViewModel) {
 
         Button(
             onClick = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    val extension = if (platform == "android") "apk" else "ipa"
-                    val chooser   = JFileChooser()
-                    chooser.dialogTitle  = "저장 위치 선택"
-                    chooser.selectedFile = File("${appName.ifBlank { "mock" }}.$extension")
-                    chooser.fileFilter   = FileNameExtensionFilter("${extension.uppercase()} File", extension)
+                val prefs     = Preferences.userRoot().node("com/mockpack/app")
+                val lastDir   = prefs.get("lastSaveDir", null)?.let { File(it) }
 
-                    val result = chooser.showSaveDialog(null)
-                    if (result != JFileChooser.APPROVE_OPTION) return@launch
+                val extension = if (platform == "android") "apk" else "ipa"
+                val chooser   = JFileChooser(lastDir)
+                chooser.dialogTitle  = "저장 위치 선택"
+                chooser.selectedFile = File(lastDir, "${appName.ifBlank { "mock" }}.$extension")
+                chooser.fileFilter   = FileNameExtensionFilter("${extension.uppercase()} File", extension)
 
-                    var outputFile = chooser.selectedFile
-                    if (!outputFile.name.endsWith(".$extension")) {
-                        outputFile = File("${outputFile.absolutePath}.$extension")
-                    }
+                val result = chooser.showSaveDialog(null)
+                if (result != JFileChooser.APPROVE_OPTION) return@Button
 
-                    val metadata = if (platform == "android") {
-                        AndroidMetadata(
-                            packageId        = packageId,
-                            versionName      = versionName,
-                            buildNumber      = buildNumber,
-                            appName          = appName,
-                            minSdkVersion    = minSdk.toIntOrNull() ?: Constants.AndroidDefaults.MIN_SDK_VERSION,
-                            targetSdkVersion = targetSdk.toIntOrNull() ?: Constants.AndroidDefaults.TARGET_SDK_VERSION
-                        )
-                    } else {
-                        IosMetadata(
-                            packageId        = packageId,
-                            versionName      = versionName,
-                            buildNumber      = buildNumber,
-                            appName          = appName,
-                            minimumOSVersion = minimumOSVersion
-                        )
-                    }
-
-                    viewModel.build(metadata, outputFile.toPath())
+                var outputFile = chooser.selectedFile
+                prefs.put("lastSaveDir", outputFile.parent)
+                if (!outputFile.name.endsWith(".$extension")) {
+                    outputFile = File("${outputFile.absolutePath}.$extension")
                 }
+
+                val metadata = if (platform == "android") {
+                    AndroidMetadata(
+                        packageId        = packageId,
+                        versionName      = versionName,
+                        buildNumber      = buildNumber,
+                        appName          = appName,
+                        minSdkVersion    = minSdk.toIntOrNull() ?: Constants.AndroidDefaults.MIN_SDK_VERSION,
+                        targetSdkVersion = targetSdk.toIntOrNull() ?: Constants.AndroidDefaults.TARGET_SDK_VERSION
+                    )
+                } else {
+                    IosMetadata(
+                        packageId        = packageId,
+                        versionName      = versionName,
+                        buildNumber      = buildNumber,
+                        appName          = appName,
+                        minimumOSVersion = minimumOSVersion
+                    )
+                }
+
+                viewModel.build(metadata, outputFile.toPath())
             },
             enabled  = packageId.isNotBlank() && !buildState.isBuilding,
             modifier = Modifier.fillMaxWidth().height(48.dp),
